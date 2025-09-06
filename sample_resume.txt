@@ -1,0 +1,49 @@
+Pradeep Audi
+Senior Python Developer
+pradeep@imercfy.com | +1-555-123-4567 | linkedin.com/in/johndoe
+
+PROFESSIONAL SUMMARY
+Experienced Python developer with 6 years of expertise in web development, cloud platforms, and database management. Proven track record of delivering scalable solutions and mentoring junior developers.
+
+TECHNICAL SKILLS
+Programming Languages: Python, JavaScript, SQL
+Frameworks: Django, Flask, React, Node.js
+Databases: PostgreSQL, MongoDB, Redis
+Cloud Platforms: AWS, Azure, Docker, Kubernetes
+APIs: RESTful APIs, GraphQL, Microservices
+Tools: Git, Jenkins, JIRA, VS Code
+
+PROFESSIONAL EXPERIENCE
+
+Senior Python Developer | Tech Corp | 2020-2024 | 4 years
+- Led development of enterprise web applications using Django and Flask
+- Implemented microservices architecture with Docker and Kubernetes
+- Managed PostgreSQL and MongoDB databases with 99.9% uptime
+- Mentored 3 junior developers and conducted code reviews
+- Deployed applications to AWS and Azure cloud platforms
+
+Python Developer | Startup Inc | 2018-2020 | 2 years
+- Developed RESTful APIs and GraphQL endpoints
+- Built responsive web applications using React and Python
+- Collaborated with cross-functional teams using Agile methodology
+- Implemented CI/CD pipelines with Jenkins and Git
+
+EDUCATION
+
+Master's Degree in Computer Science | Stanford University | 2020
+- Specialized in Software Engineering and Machine Learning
+- GPA: 3.8/4.0
+
+Bachelor's Degree in Software Engineering | MIT | 2018
+- Focus on Web Technologies and Database Systems
+- Dean's List recipient
+
+CERTIFICATIONS
+- AWS Certified Developer Associate
+- Docker Certified Associate
+- MongoDB Certified Developer
+
+PROJECTS
+- E-commerce Platform: Built scalable Django application serving 10K+ users
+- Data Analytics Dashboard: Created real-time analytics using Python and React
+- API Gateway: Developed microservices gateway with Flask and Docker
