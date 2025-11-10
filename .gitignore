@@ -165,12 +165,61 @@ token.json
 *.key
 *.pem
 *.p12
+.env
+.env.*
+!.env.example
+
+# API Keys and Configuration
+google_credentials.json
+service_account.json
+*.yaml
+*.yml
+!requirements.txt
 
 # Logs and databases
 *.db
 *.sqlite
 *.log
 
+# Uploaded files and temporary data
+uploads/
+temp/
+tmp/
+*.tmp
+
+# Resume and document uploads
+resumes/
+documents/
+sample_*.pdf
+sample_*.docx
+sample_*.txt
+!sample_remote_work_policy.txt
+
+# Streamlit cache
+.streamlit/
+*.streamlit
+
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Neo4j and Database dumps
+*.dump
+*.sql
+neo4j_data/
+
+# Vector database
+vector_db/
+*.index
+*.faiss
+
+# Model cache
+models/
+*.model
+*.pkl
+*.joblib
+
+# Backup files
+*.bak
+*.backup
+*~

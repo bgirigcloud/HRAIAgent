@@ -14,16 +14,18 @@ from google.adk.tools.agent_tool import AgentTool
 from google.adk.models.google_llm import Gemini
 
 # Import sub-agents
-from sub_agents.job_description.agent import job_description_agent
-from sub_agents.email_send_agent.agent import email_send_agent
-from sub_agents.interview_transcript_agent.agent import interview_transcript_agent
-from sub_agents.resume_analyzer.agent import resume_analyzer_agent
-from sub_agents.scheduling_agent.agent import scheduling_agent
-from sub_agents.ats_tool.agent import ats_agent
+from HR_root_agent.sub_agents.job_description.agent import job_description_agent
+from HR_root_agent.sub_agents.email_send_agent.agent import email_send_agent
+from HR_root_agent.sub_agents.interview_transcript_agent.agent import interview_transcript_agent
+from HR_root_agent.sub_agents.resume_analyzer.agent import resume_analyzer_agent
+from HR_root_agent.sub_agents.scheduling_agent.agent import scheduling_agent
+from HR_root_agent.sub_agents.ats_tool.agent import ats_agent
+from HR_root_agent.sub_agents.hr_policy_agent.agent import hr_policy_agent
+from HR_root_agent.sub_agents.leave_management.agent import leave_management_agent
 
 # Import new agents
 try:
-    from sub_agents.payroll_agent.agent import PayrollAgent
+    from HR_root_agent.sub_agents.payroll_agent.agent import PayrollAgent
     payroll_agent = PayrollAgent()
     HAS_PAYROLL_AGENT = True
 except ImportError:
@@ -32,7 +34,7 @@ except ImportError:
     print("Warning: Payroll agent not available.")
 
 try:
-    from sub_agents.onboarding_agent.agent import OnboardingAgent
+    from HR_root_agent.sub_agents.onboarding_agent.agent import OnboardingAgent
     onboarding_agent = OnboardingAgent()
     HAS_ONBOARDING_AGENT = True
 except ImportError:
@@ -42,7 +44,7 @@ except ImportError:
 
 # Import new advanced agents
 try:
-    from sub_agents.neo4j_agent import neo4j_agent
+    from HR_root_agent.sub_agents.neo4j_agent import neo4j_agent
     HAS_NEO4J_AGENT = True
 except ImportError:
     neo4j_agent = None
@@ -50,7 +52,7 @@ except ImportError:
     print("Warning: Neo4j agent not available. Install dependencies with: pip install neo4j")
 
 try:
-    from sub_agents.pgvector_db_agent import pgvector_db_agent
+    from HR_root_agent.sub_agents.pgvector_db_agent import pgvector_db_agent
     HAS_PGVECTOR_AGENT = True
 except ImportError:
     pgvector_db_agent = None
@@ -58,7 +60,7 @@ except ImportError:
     print("Warning: PGVector DB agent not available. Install dependencies with: pip install psycopg2-binary numpy")
 
 try:
-    from sub_agents.rag_agent import rag_agent
+    from HR_root_agent.sub_agents.rag_agent import rag_agent
     HAS_RAG_AGENT = True
     # Set vector DB agent for the RAG agent to use
     if HAS_PGVECTOR_AGENT:
@@ -115,27 +117,30 @@ sub_agents_list = [
     interview_transcript_agent,
     resume_analyzer_agent,
     scheduling_agent,
-    ats_agent
+    ats_agent,
+    hr_policy_agent,
+    leave_management_agent
 ]
 
 # Add optional agents if available
-if HAS_ONBOARDING_AGENT:
-    sub_agents_list.append(onboarding_agent)
+# Temporarily disabled - these agents need to properly inherit from BaseAgent
+# if HAS_ONBOARDING_AGENT:
+#     sub_agents_list.append(onboarding_agent)
 
-if HAS_PAYROLL_AGENT:
-    sub_agents_list.append(payroll_agent)
+# if HAS_PAYROLL_AGENT:
+#     sub_agents_list.append(payroll_agent)
 
-if HAS_NEO4J_AGENT:
-    sub_agents_list.append(neo4j_agent)
+# if HAS_NEO4J_AGENT:
+#     sub_agents_list.append(neo4j_agent)
     
-if HAS_PGVECTOR_AGENT:
-    sub_agents_list.append(pgvector_db_agent)
+# if HAS_PGVECTOR_AGENT:
+#     sub_agents_list.append(pgvector_db_agent)
     
-if HAS_RAG_AGENT:
-    sub_agents_list.append(rag_agent)
+# if HAS_RAG_AGENT:
+#     sub_agents_list.append(rag_agent)
     
-if HAS_MCP_SERVER_AGENT:
-    sub_agents_list.append(mcp_server_agent)
+# if HAS_MCP_SERVER_AGENT:
+#     sub_agents_list.append(mcp_server_agent)
 
 root_agent = Agent(
     name="HR_root_agent",
@@ -149,6 +154,8 @@ root_agent = Agent(
     - Resume parsing and candidate evaluation
     - Interview scheduling and calendar coordination
     - ATS (Applicant Tracking System) for complete hiring workflow management
+    - HR Policy Management and Employee Policy Queries
+    - Leave Management and Approval System
     - Employee onboarding process automation
     - Payroll processing and management
     - Graph database operations for organizational relationships (Neo4j)

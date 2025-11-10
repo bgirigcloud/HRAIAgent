@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/themes/df-messenger-default.css">
+    <script src="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/df-messenger.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            overflow: hidden;
+            background: transparent;
+        }
+        
+        df-messenger {
+            z-index: 999999;
+            position: fixed;
+            --df-messenger-font-color: #000;
+            --df-messenger-font-family: Google Sans;
+            --df-messenger-chat-background: #f3f6fc;
+            --df-messenger-message-user-background: #d3e3fd;
+            --df-messenger-message-bot-background: #fff;
+            bottom: 80px;
+            right: 20px;
+        }
+    </style>
+</head>
+<body>
+    <df-messenger
+      project-id="zeta-turbine-477404-d9"
+      agent-id="b7cb3330-91e9-49bb-bb37-4c172ef90042"
+      language-code="en"
+      max-query-length="-1">
+      <df-messenger-chat-bubble chat-title="HRAIAgent">
+      </df-messenger-chat-bubble>
+    </df-messenger>
+</body>
+</html>

@@ -1,0 +1,277 @@
+REMOTE WORK POLICY 2025
+
+Document Version: 1.0
+Effective Date: January 1, 2025
+Department: Human Resources
+
+PURPOSE
+This policy outlines the guidelines and expectations for employees who work remotely, either full-time or on a hybrid schedule, to ensure productivity, security, and work-life balance.
+
+1. ELIGIBILITY
+
+1.1 Eligible Positions
+Not all positions are suitable for remote work. Eligibility is determined by:
+- Nature of job duties (can be performed remotely without loss of productivity)
+- Employee performance history (must have satisfactory performance record)
+- Minimum tenure: 6 months with the company
+- Manager approval required
+
+1.2 Ineligible Positions
+Positions requiring physical presence:
+- Reception and front desk
+- On-site IT support
+- Facilities management
+- Positions handling physical inventory
+- Lab technicians
+
+2. WORK ARRANGEMENTS
+
+2.1 Full Remote
+- Work from home 5 days per week
+- Must attend in-person meetings when required (with 1 week notice)
+- Quarterly in-office team meetings
+
+2.2 Hybrid Schedule
+Employees may work remotely up to 3 days per week with manager approval.
+
+Office Days:
+- Minimum 2 days in office per week
+- Core days: Tuesdays and Thursdays (highly recommended for collaboration)
+- Schedule must be submitted and approved monthly
+
+2.3 Occasional Remote Work
+Employees may request ad-hoc remote work days:
+- Maximum 2 days per month
+- Manager approval required with 24 hours notice
+- Subject to business needs
+
+3. WORKING HOURS
+
+3.1 Core Hours
+All remote employees must be available during core business hours:
+- Core Hours: 10:00 AM - 3:00 PM (Local Time)
+- Flexible start time: Between 7:00 AM - 10:00 AM
+- Flexible end time: Between 3:00 PM - 7:00 PM
+
+3.2 Availability
+- Must be reachable via email, Slack, and video calls during working hours
+- Response time expectation: Within 2 hours during core hours
+- Set status indicators (Available, In Meeting, Away, Offline)
+
+3.3 Breaks and Lunch
+- 30-minute lunch break (unpaid)
+- 15-minute breaks (morning and afternoon)
+- Update calendar to show break times
+
+4. WORKSPACE REQUIREMENTS
+
+4.1 Home Office Setup
+Employees must have:
+- Dedicated, quiet workspace
+- Stable internet connection (minimum 25 Mbps download, 5 Mbps upload)
+- Adequate lighting
+- Ergonomic furniture (desk and chair)
+
+4.2 Equipment Provided by Company
+- Laptop/Desktop computer
+- Monitor (upon request)
+- Keyboard and mouse
+- Headset with microphone
+- Docking station (if applicable)
+
+4.3 Employee Responsibility
+- Power supply and electrical costs
+- Internet service provider costs
+- Office furniture (company may provide allowance up to $500)
+- Stationery and office supplies
+
+5. EQUIPMENT AND TECHNOLOGY
+
+5.1 Company Equipment
+- All company-provided equipment remains company property
+- Must be returned upon termination or end of remote work arrangement
+- Report any damage or malfunction immediately to IT
+
+5.2 Security Requirements
+- Use company VPN for all work-related activities
+- Keep software and operating systems updated
+- Use encrypted connections for sensitive data
+- Never share passwords or login credentials
+- Lock computer when stepping away
+
+5.3 Technical Support
+- IT helpdesk available 8 AM - 6 PM EST
+- Emergency support available 24/7
+- Remote troubleshooting via TeamViewer
+- On-site support available by appointment
+
+6. COMMUNICATION AND COLLABORATION
+
+6.1 Required Tools
+- Email: Primary communication tool
+- Slack: Instant messaging and team collaboration
+- Zoom: Video conferencing
+- Microsoft Teams: File sharing and collaboration
+- Jira/Asana: Project management
+
+6.2 Meeting Etiquette
+- Video on for team meetings
+- Mute when not speaking
+- Use virtual backgrounds if workspace not professional
+- Test audio/video before meetings
+- Be punctual
+
+6.3 Daily Check-ins
+- Morning: Brief status update in team Slack channel
+- End of day: Summary of completed tasks
+- Weekly: 1:1 with manager
+
+7. PERFORMANCE EXPECTATIONS
+
+7.1 Productivity
+Remote work is a privilege based on sustained performance:
+- Meet all deadlines and deliverables
+- Maintain quality standards
+- Respond promptly to communications
+- Participate actively in meetings
+
+7.2 Performance Monitoring
+- Regular 1:1 meetings with manager
+- Weekly progress reports
+- Project milestone tracking
+- Quarterly performance reviews
+
+7.3 Termination of Remote Work Privilege
+Remote work arrangement may be revoked if:
+- Performance declines
+- Communication issues arise
+- Security breaches occur
+- Business needs change
+
+8. DATA SECURITY AND CONFIDENTIALITY
+
+8.1 Data Protection
+- No storing of company data on personal devices
+- Use company cloud storage (OneDrive, SharePoint)
+- Encrypt all sensitive documents
+- Shred physical documents properly
+
+8.2 Privacy
+- Ensure confidential conversations cannot be overheard
+- Use headphones for sensitive calls
+- Never discuss confidential matters in public spaces
+- Lock doors during sensitive meetings
+
+8.3 Cybersecurity
+- Report any suspicious emails or activities immediately
+- Never use public Wi-Fi for work without VPN
+- Keep antivirus software updated
+- Back up work regularly
+
+9. EXPENSES AND REIMBURSEMENTS
+
+9.1 Internet Stipend
+- $50/month internet reimbursement for full remote employees
+- $25/month for hybrid employees
+- Submit receipts monthly via expense system
+
+9.2 Home Office Setup Allowance
+One-time allowance of $500 for:
+- Desk
+- Ergonomic chair
+- Lighting
+- Other office essentials
+
+Submit itemized receipts within first 90 days of remote work approval.
+
+9.3 Non-Reimbursable Expenses
+- Electricity
+- Heating/Cooling
+- Home insurance
+- Property taxes
+
+10. HEALTH AND SAFETY
+
+10.1 Ergonomics
+- Follow ergonomic guidelines provided in company handbook
+- Take regular breaks to avoid strain
+- Adjust chair and monitor height properly
+
+10.2 Work-Life Balance
+- Maintain clear boundaries between work and personal time
+- Avoid working excessive hours
+- Take full lunch breaks away from computer
+- Use vacation time
+
+10.3 Reporting Injuries
+Report any work-related injuries to HR within 24 hours, even if working from home.
+
+11. IN-PERSON REQUIREMENTS
+
+11.1 Mandatory Office Attendance
+Remote employees must attend in-person for:
+- Quarterly all-hands meetings
+- Department offsites and team building events
+- Critical project kickoffs
+- Performance reviews (as needed)
+- Client meetings (as requested)
+
+11.2 Travel Expenses
+Company will cover travel expenses for mandatory in-person events:
+- Transportation costs (flights, gas mileage, parking)
+- Accommodation (if over 50 miles from office)
+- Per diem for meals
+
+12. INTERNATIONAL REMOTE WORK
+
+12.1 Within Country
+Employees may work remotely from any location within their country of residence, subject to:
+- Tax implications
+- Legal requirements
+- Time zone considerations (must overlap with core hours)
+
+12.2 International
+International remote work requires special approval from:
+- HR Department
+- Legal Department
+- Tax/Finance Department
+
+Considerations:
+- Visa and work permit requirements
+- Tax treaties and obligations
+- Time zone differences
+- Equipment shipping
+
+13. POLICY COMPLIANCE
+
+13.1 Acknowledgment
+All remote employees must sign a Remote Work Agreement acknowledging they have read and understood this policy.
+
+13.2 Violations
+Policy violations may result in:
+- Verbal warning
+- Written warning
+- Termination of remote work privilege
+- Disciplinary action up to and including termination
+
+14. POLICY REVIEW
+
+This policy is reviewed annually and may be updated based on:
+- Business needs
+- Technology changes
+- Legal requirements
+- Employee feedback
+
+15. QUESTIONS AND SUPPORT
+
+For questions about this policy, contact:
+- HR Department: hr@company.com
+- IT Support: itsupport@company.com
+- Remote Work Coordinator: remotework@company.com
+
+---
+
+Approved By: Chief Human Resources Officer & Chief Information Officer
+Effective Date: January 1, 2025
+Next Review Date: January 1, 2026
+Policy Owner: HR Department

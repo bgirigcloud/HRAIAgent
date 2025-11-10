@@ -16,6 +16,9 @@ The HR AI Agent system is a collection of specialized sub-agents that work toget
 - **Interview Transcript Agent**: Analyzes interview transcripts to identify key insights
 - **Email Send Agent**: Handles email communications with candidates
 - **Scheduling Agent**: Manages interview scheduling and calendar integration
+- **ATS Integration Agent**: Integrates with Applicant Tracking Systems for seamless workflow
+- **HR Policy Assistant**: Manages company policies with document upload and AI-powered Q&A
+- **Leave Management Agent**: Comprehensive leave request, approval, and tracking system
 
 ### Additional Agents (Demo Mode)
 
@@ -48,6 +51,23 @@ The HR AI Agent system is a collection of specialized sub-agents that work toget
 - Google Calendar integration for scheduling
 - Email system integration
 - ATS (Applicant Tracking System) integration
+
+### Employee Self-Service
+- **HR Policy Assistant**: Upload, search, and query company policy documents
+  - Multi-format document support (PDF, Word, Text)
+  - AI-powered policy Q&A with natural language understanding
+  - Category-based organization and search
+  - Rate limit handling with automatic retry and fallback
+  - See [HR_POLICY_ASSISTANT_README.md](HR_POLICY_ASSISTANT_README.md) for details
+
+- **Leave Management System**: Complete leave request and approval workflow
+  - Tenure-based leave allocation (15-25 vacation days)
+  - Multiple leave types (Vacation, Sick, Personal, Bereavement, Parental, Unpaid)
+  - Employee portal for balance checking and request submission
+  - Manager dashboard for approvals and team overview
+  - Automated balance tracking and weekday-only calculations
+  - Leave history and analytics with AI-powered insights
+  - See [LEAVE_MANAGEMENT_README.md](LEAVE_MANAGEMENT_README.md) for details
 
 ## 🚀 Deployment
 
@@ -109,11 +129,11 @@ The HR AI Agent system is a collection of specialized sub-agents that work toget
 3. **Build and deploy to Cloud Run**
    ```bash
    # Build the Docker image
-   gcloud builds submit --tag gcr.io/your-project-id/hr-ai-agent
+   gcloud builds submit --tag gcr.io/zeta-turbine-477404-d9/hr-ai-agent
 
    # Deploy to Cloud Run
    gcloud run deploy hr-ai-agent \
-     --image gcr.io/your-project-id/hr-ai-agent \
+     --image gcr.io/zeta-turbine-477404-d9/hr-ai-agent \
      --platform managed \
      --region us-central1 \
      --allow-unauthenticated \
@@ -132,14 +152,10 @@ The HR AI Agent system is a collection of specialized sub-agents that work toget
 from HR_root_agent.agent import hr_root_agent
 
 # Analyze a resume against a job description
-response = hr_root_agent.run(
-    "Analyze this resume against the Java Developer job description",
-    context={
-        "resume_path": "path/to/resume.pdf",
-        "job_description_path": "path/to/job_description.txt"
-    }
+response = hr_root_agent.send_message(
+    "Analyze this resume against the Java Developer job description"
 )
-print(response)
+print(response.text)
 ```
 
 ### Job Description Analysis
@@ -148,13 +164,10 @@ print(response)
 from HR_root_agent.agent import hr_root_agent
 
 # Analyze a job description
-response = hr_root_agent.run(
-    "Extract key requirements from this job description",
-    context={
-        "job_description_path": "path/to/job_description.txt"
-    }
+response = hr_root_agent.send_message(
+    "Extract key requirements from this job description"
 )
-print(response)
+print(response.text)
 ```
 
 ### Interview Scheduling
@@ -163,15 +176,67 @@ print(response)
 from HR_root_agent.agent import hr_root_agent
 
 # Schedule an interview
-response = hr_root_agent.run(
-    "Schedule an interview with John Doe for the Software Engineer position",
-    context={
-        "candidate_email": "john.doe@example.com",
-        "position": "Software Engineer",
-        "interviewer_email": "hiring.manager@company.com"
-    }
+response = hr_root_agent.send_message(
+    "Schedule an interview with John Doe for the Software Engineer position"
 )
-print(response)
+print(response.text)
+```
+
+### HR Policy Management
+
+```python
+from HR_root_agent.sub_agents.hr_policy_agent.agent import hr_policy_agent
+
+# Query a policy
+response = hr_policy_agent.send_message(
+    "What is the remote work policy?"
+)
+print(response.text)
+```
+
+### Leave Management
+
+```python
+from HR_root_agent.sub_agents.leave_management.agent import leave_management_agent
+
+# Submit a leave request
+response = leave_management_agent.send_message(
+    "Submit leave request for EMP001 from 2024-12-20 to 2024-12-22 for Vacation reason: Holiday trip"
+)
+print(response.text)
+
+# Approve a leave request
+response = leave_management_agent.send_message(
+    "Approve leave request REQ-EMP001-20241220 by manager MGR001"
+)
+print(response.text)
+
+# Check leave balance
+response = leave_management_agent.send_message(
+    "What is the leave balance for employee EMP001?"
+)
+print(response.text)
+```
+
+### Demo Scripts
+
+Run the demo scripts to see the agents in action:
+
+```bash
+# Resume analysis demo
+python resume_analysis_example.py
+
+# Job description demo
+python java_developer_jd_demo.py
+
+# HR Policy Assistant demo
+python hr_policy_assistant_demo.py
+
+# Leave Management demo
+python leave_management_demo.py
+
+# Full system demo
+python integration_example.py
 ```
 
 ## 🛠️ Project Structure
@@ -187,12 +252,19 @@ HRAIAgent/
 │       ├── interview_transcript_agent/ # Interview analysis
 │       ├── job_description/   # Job description processing
 │       ├── resume_analyzer/   # Resume analysis
-│       └── scheduling_agent/  # Calendar scheduling
+│       ├── scheduling_agent/  # Calendar scheduling
+│       ├── hr_policy_agent/   # HR policy management
+│       └── leave_management/  # Leave request system
 ├── demo_agents.py             # Demo agent implementations
 ├── main.py                    # Main application entry point
-├── streamlit_app.py           # Streamlit web interface
+├── streamlit_app.py           # Streamlit web interface (9 sections)
 ├── requirements.txt           # Project dependencies
-└── README.md                  # Project documentation
+├── README.md                  # This file
+├── HR_POLICY_ASSISTANT_README.md  # HR Policy documentation
+├── LEAVE_MANAGEMENT_README.md     # Leave Management documentation
+├── sample_leave_policy.txt    # Sample leave policy document
+├── sample_remote_work_policy.txt  # Sample remote work policy
+└── leave_management_demo.py   # Leave system demo script
 ```
 
 ## 📜 Requirements

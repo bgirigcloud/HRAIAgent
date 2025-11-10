@@ -1,5 +1,6 @@
 import streamlit as st
-import datetime
+from datetime import datetime, timedelta
+import re
 
 # Set page configuration - MUST be the first Streamlit command
 st.set_page_config(
@@ -46,6 +47,12 @@ except ImportError:
 try:
     import dotenv
     dotenv.load_dotenv()  # Load environment variables from .env file
+    
+    # Check if GOOGLE_API_KEY is loaded
+    GOOGLE_API_KEY = os.getenv('GOOGLE_API_KEY')
+    if not GOOGLE_API_KEY:
+        st.error("⚠️ GOOGLE_API_KEY not found in environment variables!")
+        st.info("Please add your Google API key to the .env file:\n\nGOOGLE_API_KEY=your_api_key_here")
 except ImportError:
     st.error("Failed to import dotenv. Please install it with: pip install python-dotenv")
     dotenv = None
@@ -96,6 +103,218 @@ class MockAgent:
     """Mock agent class for demonstration purposes"""
     def __init__(self, agent_type="generic"):
         self.agent_type = agent_type
+    
+    def send_message(self, message):
+        """Mock send_message method for ADK compatibility"""
+        class MockResponse:
+            def __init__(self, text):
+                self.text = text
+        
+        # Return mock response based on agent type
+        if self.agent_type == "leave":
+            # Initialize session state for leave data if not exists
+            if 'mock_leave_requests' not in st.session_state:
+                st.session_state.mock_leave_requests = []
+            if 'mock_leave_history' not in st.session_state:
+                st.session_state.mock_leave_history = []
+            if 'mock_request_counter' not in st.session_state:
+                st.session_state.mock_request_counter = 0
+            
+            if "initialize" in message.lower():
+                return MockResponse("✅ Leave balance initialized successfully.")
+            
+            elif "balance" in message.lower():
+                # Extract employee ID from message
+                emp_id = "EMP001"
+                if "EMP002" in message:
+                    emp_id = "EMP002"
+                elif "EMP003" in message:
+                    emp_id = "EMP003"
+                
+                return MockResponse(f"📊 Leave Balance for {emp_id}:\n- Vacation: 15 days\n- Sick: 12 days\n- Personal: 5 days\n- Bereavement: 5 days")
+            
+            elif "submit" in message.lower():
+                # Parse the message to extract details
+                # Extract employee ID
+                emp_match = re.search(r'EMP\d+', message)
+                emp_id = emp_match.group(0) if emp_match else "EMP001"
+                
+                # Extract dates
+                date_match = re.search(r'from (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2})', message)
+                if date_match:
+                    start_date = date_match.group(1)
+                    end_date = date_match.group(2)
+                else:
+                    start_date = "2024-12-10"
+                    end_date = "2024-12-12"
+                
+                # Extract leave type
+                leave_type = "Vacation"
+                if "Sick" in message:
+                    leave_type = "Sick"
+                elif "Personal" in message:
+                    leave_type = "Personal"
+                elif "Bereavement" in message:
+                    leave_type = "Bereavement"
+                elif "Parental" in message:
+                    leave_type = "Parental"
+                elif "Unpaid" in message:
+                    leave_type = "Unpaid"
+                
+                # Extract reason
+                reason_match = re.search(r'reason: (.+)$', message, re.IGNORECASE)
+                reason = reason_match.group(1) if reason_match else "Personal reasons"
+                
+                # Calculate days (simple calculation)
+                try:
+                    start = datetime.strptime(start_date, "%Y-%m-%d")
+                    end = datetime.strptime(end_date, "%Y-%m-%d")
+                    days = (end - start).days + 1
+                    # Estimate weekdays (rough calculation)
+                    weekdays = max(1, int(days * 5/7))
+                except:
+                    weekdays = 3
+                
+                # Check for half day
+                is_half_day = "half day" in message.lower()
+                if is_half_day:
+                    weekdays = 0.5
+                
+                # Generate request ID
+                st.session_state.mock_request_counter += 1
+                request_id = f"REQ-{emp_id}-{start_date.replace('-', '')}"
+                
+                # Get employee name
+                emp_names = {"EMP001": "John Doe", "EMP002": "Jane Smith", "EMP003": "Bob Johnson"}
+                emp_name = emp_names.get(emp_id, "Unknown Employee")
+                
+                # Store the request
+                request_data = {
+                    "id": request_id,
+                    "employee_id": emp_id,
+                    "employee_name": emp_name,
+                    "leave_type": leave_type,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "days": weekdays,
+                    "reason": reason,
+                    "status": "Pending",
+                    "submitted_date": datetime.now().strftime("%Y-%m-%d %H:%M")
+                }
+                
+                st.session_state.mock_leave_requests.append(request_data)
+                st.session_state.mock_leave_history.append(request_data.copy())
+                
+                return MockResponse(f"✅ Leave request submitted successfully! Request ID: {request_id}")
+            
+            elif "pending" in message.lower():
+                if not st.session_state.mock_leave_requests:
+                    return MockResponse("📋 No pending leave requests.")
+                
+                # Show only pending requests
+                pending_requests = [r for r in st.session_state.mock_leave_requests if r["status"] == "Pending"]
+                
+                if not pending_requests:
+                    return MockResponse("📋 No pending leave requests.")
+                
+                response_text = "📋 Pending Leave Requests:\n\n"
+                for req in pending_requests:
+                    response_text += f"**{req['id']}**\n"
+                    response_text += f"- Employee: {req['employee_name']} ({req['employee_id']})\n"
+                    response_text += f"- Type: {req['leave_type']}\n"
+                    response_text += f"- Dates: {req['start_date']} to {req['end_date']} ({req['days']} days)\n"
+                    response_text += f"- Reason: {req['reason']}\n"
+                    response_text += f"- Submitted: {req['submitted_date']}\n\n"
+                
+                return MockResponse(response_text)
+            
+            elif "approve" in message.lower():
+                # Extract request ID
+                req_id_match = re.search(r'REQ-[A-Z0-9-]+', message)
+                if req_id_match:
+                    req_id = req_id_match.group(0)
+                    
+                    # Find and update the request
+                    for req in st.session_state.mock_leave_requests:
+                        if req["id"] == req_id and req["status"] == "Pending":
+                            req["status"] = "Approved"
+                            req["approved_date"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+                            
+                            # Update history
+                            for hist in st.session_state.mock_leave_history:
+                                if hist["id"] == req_id:
+                                    hist["status"] = "Approved"
+                                    hist["approved_date"] = req["approved_date"]
+                            
+                            return MockResponse(f"✅ Leave request {req_id} approved successfully! Balance updated.")
+                    
+                    return MockResponse(f"⚠️ Request {req_id} not found or already processed.")
+                
+                return MockResponse("⚠️ Please provide a valid request ID.")
+            
+            elif "reject" in message.lower():
+                # Extract request ID
+                req_id_match = re.search(r'REQ-[A-Z0-9-]+', message)
+                if req_id_match:
+                    req_id = req_id_match.group(0)
+                    
+                    # Find and update the request
+                    for req in st.session_state.mock_leave_requests:
+                        if req["id"] == req_id and req["status"] == "Pending":
+                            req["status"] = "Rejected"
+                            req["rejected_date"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+                            
+                            # Update history
+                            for hist in st.session_state.mock_leave_history:
+                                if hist["id"] == req_id:
+                                    hist["status"] = "Rejected"
+                                    hist["rejected_date"] = req["rejected_date"]
+                            
+                            return MockResponse(f"✅ Leave request {req_id} rejected. Reason recorded.")
+                    
+                    return MockResponse(f"⚠️ Request {req_id} not found or already processed.")
+                
+                return MockResponse("⚠️ Please provide a valid request ID.")
+            
+            elif "history" in message.lower():
+                # Extract employee ID from message
+                emp_match = re.search(r'EMP\d+', message)
+                emp_id = emp_match.group(0) if emp_match else None
+                
+                if not st.session_state.mock_leave_history:
+                    return MockResponse("📜 No leave history available yet.")
+                
+                # Filter by employee if specified
+                if emp_id:
+                    history = [h for h in st.session_state.mock_leave_history if h["employee_id"] == emp_id]
+                else:
+                    history = st.session_state.mock_leave_history
+                
+                if not history:
+                    return MockResponse(f"📜 No leave history for {emp_id if emp_id else 'this employee'}.")
+                
+                response_text = f"📜 Leave History{' for ' + emp_id if emp_id else ''}:\n\n"
+                for req in reversed(history):  # Show newest first
+                    response_text += f"**{req['id']}** - {req['status']}\n"
+                    response_text += f"- Type: {req['leave_type']}\n"
+                    response_text += f"- Dates: {req['start_date']} to {req['end_date']} ({req['days']} days)\n"
+                    response_text += f"- Reason: {req['reason']}\n"
+                    response_text += f"- Submitted: {req['submitted_date']}\n"
+                    if req['status'] == "Approved" and 'approved_date' in req:
+                        response_text += f"- Approved: {req['approved_date']}\n"
+                    elif req['status'] == "Rejected" and 'rejected_date' in req:
+                        response_text += f"- Rejected: {req['rejected_date']}\n"
+                    response_text += "\n"
+                
+                return MockResponse(response_text)
+            
+            else:
+                return MockResponse("ℹ️ Leave management mock response. Please configure real agent for production use.")
+        
+        elif self.agent_type == "policy":
+            return MockResponse("ℹ️ HR Policy mock response. Please configure real agent for production use.")
+        else:
+            return MockResponse(f"ℹ️ Mock response from {self.agent_type} agent. Please configure real agent for production use.")
     
     def analyze_job_description(self, text):
         return {
@@ -274,16 +493,18 @@ def load_agents():
             return {
                 "root": root_agent,
                 "jd": root_agent.sub_agents[0],  # job_description_agent
-                "resume": root_agent.sub_agents[2],  # resume_analyzer_agent
+                "resume": root_agent.sub_agents[3],  # resume_analyzer_agent
                 "ats": root_agent.sub_agents[5],  # ats_agent
                 "scheduling": root_agent.sub_agents[4],  # scheduling_agent
                 "interview": root_agent.sub_agents[2],  # interview_transcript_agent
-                "onboarding": root_agent.sub_agents[6] if len(root_agent.sub_agents) > 6 else None,  # onboarding_agent
-                "payroll": root_agent.sub_agents[7] if len(root_agent.sub_agents) > 7 else None,  # payroll_agent
-                "neo4j": root_agent.sub_agents[8] if len(root_agent.sub_agents) > 8 else None,  # neo4j_agent
-                "pgvector_db": root_agent.sub_agents[9] if len(root_agent.sub_agents) > 9 else None,  # pgvector_db_agent
-                "rag": root_agent.sub_agents[10] if len(root_agent.sub_agents) > 10 else None,  # rag_agent
-                "mcp_server": root_agent.sub_agents[11] if len(root_agent.sub_agents) > 11 else None  # mcp_server_agent
+                "policy": root_agent.sub_agents[6] if len(root_agent.sub_agents) > 6 else None,  # hr_policy_agent
+                "leave": root_agent.sub_agents[7] if len(root_agent.sub_agents) > 7 else None,  # leave_management_agent
+                "onboarding": root_agent.sub_agents[8] if len(root_agent.sub_agents) > 8 else None,  # onboarding_agent
+                "payroll": root_agent.sub_agents[9] if len(root_agent.sub_agents) > 9 else None,  # payroll_agent
+                "neo4j": root_agent.sub_agents[10] if len(root_agent.sub_agents) > 10 else None,  # neo4j_agent
+                "pgvector_db": root_agent.sub_agents[11] if len(root_agent.sub_agents) > 11 else None,  # pgvector_db_agent
+                "rag": root_agent.sub_agents[12] if len(root_agent.sub_agents) > 12 else None,  # rag_agent
+                "mcp_server": root_agent.sub_agents[13] if len(root_agent.sub_agents) > 13 else None  # mcp_server_agent
             }
         except Exception as e:
             st.error(f"Error initializing root agent: {e}")
@@ -299,6 +520,8 @@ def load_agents():
             "ats": MockAgent("ats"),
             "scheduling": MockAgent("scheduling"),
             "interview": MockAgent("interview"),
+            "policy": MockAgent("policy"),
+            "leave": MockAgent("leave"),
             "onboarding": MockAgent("onboarding"),
             "payroll": MockAgent("payroll"),
             "neo4j": MockAgent("neo4j"),
@@ -306,6 +529,74 @@ def load_agents():
             "rag": MockAgent("rag"),
             "mcp_server": MockAgent("mcp_server")
         }
+
+# Utility function to extract text from various file formats
+def extract_text_from_file(uploaded_file):
+    """
+    Extract text from uploaded file (txt, pdf, docx)
+    
+    Args:
+        uploaded_file: Streamlit UploadedFile object
+        
+    Returns:
+        tuple: (success: bool, text: str, error_message: str)
+    """
+    try:
+        file_extension = uploaded_file.name.split('.')[-1].lower()
+        
+        if file_extension == 'txt':
+            # Handle text files
+            text = uploaded_file.getvalue().decode("utf-8")
+            return True, text, None
+        
+        elif file_extension == 'pdf':
+            # Handle PDF files - try PyPDF2 first, then PyMuPDF
+            try:
+                import PyPDF2
+                import io
+                pdf_reader = PyPDF2.PdfReader(io.BytesIO(uploaded_file.getvalue()))
+                text = ""
+                for page in pdf_reader.pages:
+                    text += page.extract_text() + "\n"
+                return True, text, None
+            except ImportError:
+                try:
+                    import fitz  # PyMuPDF
+                    import io
+                    pdf_document = fitz.open(stream=uploaded_file.getvalue(), filetype="pdf")
+                    text = ""
+                    for page_num in range(pdf_document.page_count):
+                        page = pdf_document[page_num]
+                        text += page.get_text() + "\n"
+                    pdf_document.close()
+                    return True, text, None
+                except ImportError:
+                    return False, "", "PDF support not available. Please install PyPDF2 or PyMuPDF: pip install PyPDF2"
+                except Exception as e:
+                    return False, "", f"Error reading PDF: {str(e)}"
+            except Exception as e:
+                return False, "", f"Error reading PDF: {str(e)}"
+        
+        elif file_extension == 'docx':
+            # Handle DOCX files
+            try:
+                import docx
+                import io
+                doc = docx.Document(io.BytesIO(uploaded_file.getvalue()))
+                text = ""
+                for paragraph in doc.paragraphs:
+                    text += paragraph.text + "\n"
+                return True, text, None
+            except ImportError:
+                return False, "", "DOCX support not available. Please install python-docx: pip install python-docx"
+            except Exception as e:
+                return False, "", f"Error reading DOCX: {str(e)}"
+        
+        else:
+            return False, "", f"Unsupported file type: {file_extension}. Supported: txt, pdf, docx"
+    
+    except Exception as e:
+        return False, "", f"Error processing file: {str(e)}"
 
 # Main application
 def main():
@@ -325,10 +616,30 @@ def main():
     
     # Display demo mode notice if using mock agents
     if USING_MOCK:
-        st.info("""
-        ℹ️ **DEMO MODE ACTIVE**: The application is running with simulated data and mock agents.
-        Real agent functionality is not available, but you can explore the UI and features.
+        st.warning("""
+        ⚠️ **MOCK MODE ACTIVE**: The application is running with mock agents.
+        
+        **To enable real AI analysis:**
+        1. Ensure `GOOGLE_API_KEY` is set in your .env file
+        2. Install google-adk: `pip install google-adk`
+        3. Restart the Streamlit application
+        
+        Currently showing simulated results only.
         """)
+    else:
+        st.success("✅ Real AI agents loaded and ready")
+    
+    # Show agent debug info in sidebar
+    with st.sidebar:
+        with st.expander("🔍 Agent Status"):
+            st.write(f"**Mock Mode:** {USING_MOCK}")
+            st.write(f"**API Key Present:** {bool(os.getenv('GOOGLE_API_KEY'))}")
+            try:
+                agents = load_agents()
+                st.write(f"**Agents Loaded:** {len(agents)}")
+                st.write(f"**Resume Agent Type:** {type(agents.get('resume', None)).__name__}")
+            except Exception as e:
+                st.error(f"Agent loading error: {str(e)}")
     
     
     # Navigation
@@ -350,7 +661,9 @@ def main():
             "Calendar Management",
             "Interview Analysis",
             "Employee Onboarding",
-            "Payroll Management"
+            "Payroll Management",
+            "HR Policy Assistant",
+            "Leave Management"
         ]
         
         if HAS_OPTION_MENU:
@@ -366,7 +679,9 @@ def main():
                     "calendar-date",
                     "chat-dots",
                     "person-plus",
-                    "cash-coin"
+                    "cash-coin",
+                    "book",
+                    "calendar-check"
                 ],
                 default_index=0,
                 styles={
@@ -407,6 +722,51 @@ def main():
         
     elif selected == "Payroll Management":
         display_payroll_management(agents["payroll"] if agents else None)
+    
+    elif selected == "HR Policy Assistant":
+        display_hr_policy_assistant(agents.get("policy") if agents else None)
+    
+    elif selected == "Leave Management":
+        display_leave_management(agents.get("leave") if agents else None)
+    
+    # Add floating chatbot at bottom-right corner
+    import streamlit.components.v1 as components
+    
+    # Use a container to push chatbot to bottom
+    chatbot_container = st.container()
+    with chatbot_container:
+        components.html(
+            """
+            <script src="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/df-messenger.js"></script>
+            <link rel="stylesheet" href="https://www.gstatic.com/dialogflow-console/fast/df-messenger/prod/v1/themes/df-messenger-default.css">
+            
+            <df-messenger
+              project-id="zeta-turbine-477404-d9"
+              agent-id="b7cb3330-91e9-49bb-bb37-4c172ef90042"
+              language-code="en"
+              max-query-length="-1"
+              chat-title="HRAIAgent">
+              <df-messenger-chat-bubble chat-title="HRAIAgent"></df-messenger-chat-bubble>
+            </df-messenger>
+            
+            <style>
+              df-messenger {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 9999;
+                --df-messenger-font-color: #000;
+                --df-messenger-font-family: Google Sans;
+                --df-messenger-chat-background: #f3f6fc;
+                --df-messenger-message-user-background: #d3e3fd;
+                --df-messenger-message-bot-background: #fff;
+                --df-messenger-send-icon: #1570A5;
+                --df-messenger-button-titlebar-color: #1570A5;
+              }
+            </style>
+            """,
+            height=600,
+        )
 
 # Dashboard page
 def display_dashboard():
@@ -491,14 +851,14 @@ def display_jd_analysis(agent):
         if input_method == "Upload File":
             uploaded_file = st.file_uploader("Upload a job description document", type=["txt", "pdf", "docx"])
             if uploaded_file:
-                # In a real implementation, we would use libraries to extract text from various file formats
-                try:
-                    # For demonstration, assume it's a text file
-                    jd_text = uploaded_file.getvalue().decode("utf-8")
+                success, text, error = extract_text_from_file(uploaded_file)
+                if success:
+                    jd_text = text
                     with st.expander("Preview uploaded content"):
                         st.text(jd_text[:500] + ("..." if len(jd_text) > 500 else ""))
-                except:
-                    st.error("Could not read file. Please ensure it's a valid text document.")
+                else:
+                    st.error(f"Could not read file: {error}")
+                    st.info("Supported formats: TXT, PDF, DOCX")
         else:
             jd_text = st.text_area(
                 "Paste job description text",
@@ -749,6 +1109,8 @@ def display_jd_analysis(agent):
         
         if generate_btn and job_title:
             with st.spinner("Generating job description..."):
+                generated_jd = ""  # Initialize the variable
+                
                 if agent and hasattr(agent, 'generate_job_description'):
                     try:
                         # Convert responsibilities and skills to lists
@@ -759,34 +1121,61 @@ def display_jd_analysis(agent):
                         
                         # Call the agent's method
                         generated_jd = agent.generate_job_description(job_title, req_skills)
-                    except:
+                    except Exception as e:
                         # Fallback to template-based generation
-                        generated_jd = f"""
-                        # {job_title}
+                        st.warning(f"Using template-based generation: {str(e)}")
+                        generated_jd = f"""# {job_title}
 
-                        ## About the Role
-                        We are seeking an experienced {job_title} to join our {department} team{f" in {location}" if location else ""}. This is a {employment_type.lower()} position{f" reporting to the {reporting_to}" if reporting_to else ""}.
+## About the Role
+We are seeking an experienced {job_title} to join our {department} team{f" in {location}" if location else ""}. This is a {employment_type.lower()} position{f" reporting to the {reporting_to}" if reporting_to else ""}.
 
-                        ## Responsibilities
-                        {"".join(f"- {resp}\n" for resp in responsibilities.split('\n') if resp.strip())}
+## Responsibilities
+{"".join(f"- {resp}\n" for resp in responsibilities.split('\n') if resp.strip())}
 
-                        ## Required Skills & Qualifications
-                        {"".join(f"- {skill}\n" for skill in required_skills.split('\n') if skill.strip())}
+## Required Skills & Qualifications
+{"".join(f"- {skill}\n" for skill in required_skills.split('\n') if skill.strip())}
 
-                        ## Preferred Skills
-                        {"".join(f"- {skill}\n" for skill in preferred_skills.split('\n') if skill.strip())}
+## Preferred Skills
+{"".join(f"- {skill}\n" for skill in preferred_skills.split('\n') if skill.strip())}
 
-                        ## About {company_description.split()[0] if company_description else "Our Company"}
-                        {company_description}
+## About {company_description.split()[0] if company_description else "Our Company"}
+{company_description}
 
-                        ## What We Offer
-                        {"".join(f"- {benefit}\n" for benefit in benefits.split('\n') if benefit.strip())}
-                        
-                        ## Experience Level
-                        {experience_level}
-                        
-                        {f"## Salary Range\n{salary_range}" if salary_range else ""}
-                        """
+## What We Offer
+{"".join(f"- {benefit}\n" for benefit in benefits.split('\n') if benefit.strip())}
+
+## Experience Level
+{experience_level}
+
+{f"## Salary Range\n{salary_range}" if salary_range else ""}
+"""
+                else:
+                    # No agent available - use template
+                    generated_jd = f"""# {job_title}
+
+## About the Role
+We are seeking an experienced {job_title} to join our {department} team{f" in {location}" if location else ""}. This is a {employment_type.lower()} position{f" reporting to the {reporting_to}" if reporting_to else ""}.
+
+## Responsibilities
+{"".join(f"- {resp}\n" for resp in responsibilities.split('\n') if resp.strip())}
+
+## Required Skills & Qualifications
+{"".join(f"- {skill}\n" for skill in required_skills.split('\n') if skill.strip())}
+
+## Preferred Skills
+{"".join(f"- {skill}\n" for skill in preferred_skills.split('\n') if skill.strip())}
+
+## About {company_description.split()[0] if company_description else "Our Company"}
+{company_description}
+
+## What We Offer
+{"".join(f"- {benefit}\n" for benefit in benefits.split('\n') if benefit.strip())}
+
+## Experience Level
+{experience_level}
+
+{f"## Salary Range\n{salary_range}" if salary_range else ""}
+"""
                 
                 # Display the generated JD
                 st.markdown('<h3 class="sub-header">Generated Job Description</h3>', unsafe_allow_html=True)
@@ -957,41 +1346,200 @@ def display_resume_screening(agent):
         analyze_resumes = st.button("Analyze Resumes", type="primary")
         
         if analyze_resumes:
-            with st.spinner("Analyzing resumes..."):
-                # Placeholder for actual agent analysis
-                if agent:
-                    # This would be replaced with actual agent call
-                    # results = agent.analyze_resumes(uploaded_files, job_listing)
-                    pass
-                
-                # Mock results
-                st.markdown('<h3 class="sub-header">Analysis Results</h3>', unsafe_allow_html=True)
-                
-                candidates = [
-                    {"name": "John Smith", "match": 92, "skills": ["Python", "Django", "AWS", "Docker"]},
-                    {"name": "Sarah Johnson", "match": 85, "skills": ["Python", "Flask", "SQL", "Git"]},
-                    {"name": "Michael Wong", "match": 78, "skills": ["Java", "Python", "REST APIs", "MongoDB"]}
-                ]
-                
-                for candidate in candidates:
-                    col1, col2 = st.columns([4, 1])
+            with st.spinner("Analyzing resumes with AI..."):
+                try:
+                    candidates = []
                     
-                    with col1:
-                        st.markdown(f"""
-                        <div class="card">
-                            <h4 style="color: #1E88E5;">{candidate['name']}</h4>
-                            <p><strong>Skills:</strong> {', '.join(candidate['skills'])}</p>
-                            <p><strong>Match Score:</strong> {candidate['match']}%</p>
-                            <p><strong>AI Recommendation:</strong> {
-                                "Strong match, proceed to interview" if candidate['match'] > 85 
-                                else "Potential match, consider technical assessment first"
-                            }</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+                    for uploaded_file in uploaded_files:
+                        # Extract text from the uploaded file
+                        success, resume_text, error = extract_text_from_file(uploaded_file)
+                        
+                        if not success:
+                            st.error(f"Failed to read {uploaded_file.name}: {error}")
+                            candidates.append({
+                                "name": uploaded_file.name.replace('.pdf', '').replace('.docx', '').replace('.txt', ''),
+                                "file": uploaded_file.name,
+                                "analysis": f"Error: {error}",
+                                "source": "error"
+                            })
+                            continue
+                        
+                        try:
+                            # Check if we have a valid agent
+                            analysis_result = None
+                            
+                            if agent and not isinstance(agent, MockAgent):
+                                # Use the actual Gemini agent to analyze the resume
+                                analysis_query = f"""
+Analyze this resume for the position: {job_listing}
+
+RESUME CONTENT:
+{resume_text[:4000]}
+
+Please provide a comprehensive analysis in the following format:
+
+**CANDIDATE NAME:** [Extract full name]
+
+**SKILLS ANALYSIS:**
+- List all technical and soft skills found
+- Rate skill match: [X/100]
+
+**EXPERIENCE ANALYSIS:**
+- Total years of experience
+- Relevant experience for this role
+- Rate experience match: [X/100]
+
+**EDUCATION:**
+- Degree(s) and institution(s)
+- Relevant certifications
+
+**OVERALL MATCH SCORE:** [X/100]
+
+**RECOMMENDATION:**
+[Provide specific recommendation: Strong Hire / Consider for Interview / Not Recommended]
+
+**KEY STRENGTHS:**
+- List 3-5 key strengths
+
+**AREAS OF CONCERN:**
+- List any gaps or concerns
+"""
+                                
+                                # Try to call the ADK agent
+                                try:
+                                    # Google ADK Agent uses send_message method
+                                    if hasattr(agent, 'send_message'):
+                                        response = agent.send_message(analysis_query)
+                                        analysis_result = response.text if hasattr(response, 'text') else str(response)
+                                        source = "gemini_agent"
+                                    # Fallback to run method
+                                    elif hasattr(agent, 'run'):
+                                        response = agent.run(analysis_query)
+                                        analysis_result = response.text if hasattr(response, 'text') else str(response)
+                                        source = "gemini_agent"
+                                    else:
+                                        # If agent doesn't have expected methods, use direct API
+                                        analysis_result = None
+                                        source = "fallback_to_api"
+                                except Exception as e:
+                                    st.warning(f"Agent error: {str(e)}. Using direct Gemini API...")
+                                    analysis_result = None
+                                    source = "fallback_to_api"
+                            
+                            # If no valid agent or agent failed, try using Gemini API directly
+                            if not analysis_result or source == "fallback_to_api" or isinstance(agent, MockAgent):
+                                api_key = os.getenv('GOOGLE_API_KEY')
+                                if api_key:
+                                    try:
+                                        # Use Google ADK for API key starting with AQ.
+                                        from google.genai import Client
+                                        client = Client(api_key=api_key)
+                                        
+                                        prompt = f"""
+You are an expert HR resume analyzer. Analyze this resume for the position: {job_listing}
+
+RESUME CONTENT:
+{resume_text[:4000]}
+
+Please provide a comprehensive analysis in the following format:
+
+**CANDIDATE NAME:** [Extract full name from resume]
+
+**SKILLS ANALYSIS:**
+- List all technical and soft skills found
+- Rate skill match for {job_listing}: [X/100]
+
+**EXPERIENCE ANALYSIS:**
+- Total years of experience
+- Relevant experience for this role
+- Rate experience match: [X/100]
+
+**EDUCATION:**
+- Degree(s) and institution(s)
+- Relevant certifications
+
+**OVERALL MATCH SCORE:** [X/100]
+
+**RECOMMENDATION:**
+[Provide specific recommendation: Strong Hire / Consider for Interview / Not Recommended]
+
+**KEY STRENGTHS:**
+- List 3-5 key strengths
+
+**AREAS OF CONCERN:**
+- List any gaps or concerns (if any)
+"""
+                                        
+                                        response = client.models.generate_content(
+                                            model='gemini-2.0-flash-exp',
+                                            contents=prompt
+                                        )
+                                        analysis_result = response.text
+                                        source = "gemini_adk_direct"
+                                    except Exception as e:
+                                        analysis_result = f"Error using Gemini API: {str(e)}\n\nPlease check your GOOGLE_API_KEY in .env file."
+                                        source = "error"
+                                else:
+                                    analysis_result = """
+**No API Key Found**
+
+GOOGLE_API_KEY not found in environment variables.
+
+**Resume Preview:**
+{}
+
+**To enable AI analysis:**
+1. Add GOOGLE_API_KEY to your .env file
+2. Get an API key from: https://aistudio.google.com/apikey
+3. Restart the Streamlit app
+
+**File successfully parsed:** {} characters extracted.
+""".format(resume_text[:500], len(resume_text))
+                                    source = "no_api_key"
+                            else:
+                                source = "gemini_agent"
+                            
+                            candidates.append({
+                                "name": uploaded_file.name.replace('.pdf', '').replace('.docx', '').replace('.txt', ''),
+                                "file": uploaded_file.name,
+                                "analysis": str(analysis_result) if analysis_result else "No response generated",
+                                "source": source
+                            })
+                        except Exception as e:
+                            st.error(f"Error analyzing {uploaded_file.name}: {str(e)}")
+                            candidates.append({
+                                "name": uploaded_file.name.replace('.pdf', '').replace('.docx', '').replace('.txt', ''),
+                                "file": uploaded_file.name,
+                                "analysis": f"Error during analysis: {str(e)}",
+                                "source": "error"
+                            })
                     
-                    with col2:
-                        st.button(f"View Details", key=f"view_{candidate['name']}")
-                        st.button(f"Shortlist", key=f"shortlist_{candidate['name']}")
+                    # Display results
+                    st.markdown('<h3 class="sub-header">AI Analysis Results</h3>', unsafe_allow_html=True)
+                    
+                    for idx, candidate in enumerate(candidates):
+                        col1, col2 = st.columns([4, 1])
+                        
+                        with col1:
+                            st.markdown(f"""
+                            <div class="card">
+                                <h4 style="color: #1E88E5;">{candidate['name']}</h4>
+                                <p><strong>File:</strong> {candidate['file']}</p>
+                                <p><strong>Position:</strong> {job_listing}</p>
+                                <hr>
+                                <p><strong>AI Analysis:</strong></p>
+                                <p style="white-space: pre-wrap;">{candidate.get('analysis', 'Analysis not available')}</p>
+                                <p style="font-size: 0.8em; color: #666;"><em>Powered by: {candidate.get('source', 'unknown')}</em></p>
+                            </div>
+                            """, unsafe_allow_html=True)
+                        
+                        with col2:
+                            st.button(f"View Details", key=f"view_{idx}")
+                            st.button(f"Shortlist", key=f"shortlist_{idx}")
+                            
+                except Exception as e:
+                    st.error(f"Error analyzing resumes: {str(e)}")
+                    st.info("Make sure your GOOGLE_API_KEY is set correctly in the .env file")
 
 # ATS Integration page
 def display_ats_integration(agent):
@@ -1747,12 +2295,12 @@ def display_payroll_management(agent):
             pay_period_type = st.selectbox("Pay Period Type", 
                                           ["Weekly", "Biweekly", "Semi-monthly", "Monthly"])
             
-            today = datetime.datetime.now()
+            today = datetime.now()
             if pay_period_type == "Weekly":
-                start_date = today - datetime.timedelta(days=7)
+                start_date = today - timedelta(days=7)
                 end_date = today
             elif pay_period_type == "Biweekly":
-                start_date = today - datetime.timedelta(days=14)
+                start_date = today - timedelta(days=14)
                 end_date = today
             elif pay_period_type == "Semi-monthly":
                 # Simplified logic for demo
@@ -1772,7 +2320,7 @@ def display_payroll_management(agent):
             end_date_input = st.date_input("End Date", value=end_date, key="payroll_end_date")
             
         with col2:
-            pay_date = st.date_input("Pay Date", value=today + datetime.timedelta(days=5), key="payroll_pay_date")
+            pay_date = st.date_input("Pay Date", value=today + timedelta(days=5), key="payroll_pay_date")
             payment_method = st.selectbox("Payment Method", ["Direct Deposit", "Check", "Cash"])
             include_terminated = st.checkbox("Include Terminated Employees", value=False)
     
@@ -2224,13 +2772,13 @@ def display_payroll_management(agent):
         
         with col2:
             if report_date_range == "Custom":
-                report_start_date = st.date_input("Start Date", value=datetime.datetime.now().replace(day=1), key="report_start_date")
+                report_start_date = st.date_input("Start Date", value=datetime.now().replace(day=1), key="report_start_date")
             else:
                 report_start_date = None
         
         with col3:
             if report_date_range == "Custom":
-                report_end_date = st.date_input("End Date", value=datetime.datetime.now(), key="report_end_date")
+                report_end_date = st.date_input("End Date", value=datetime.now(), key="report_end_date")
             else:
                 report_end_date = None
         
@@ -2401,5 +2949,779 @@ def display_payroll_management(agent):
                     st.download_button("Download as CSV", "Mock CSV data", file_name=f"{report_type.replace(' ', '_')}.csv", use_container_width=True)
 
 
+# HR Policy Assistant page
+def display_hr_policy_assistant(agent):
+    st.markdown('<h2 class="sub-header">HR Policy Assistant</h2>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    <div class="card">
+        <p class="info-text">
+            🎯 <strong>For HR:</strong> Upload company policy documents (PDF, DOCX, TXT)<br>
+            💬 <strong>For Employees:</strong> Ask questions about company policies and get instant answers
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Create tabs for HR Upload and Employee Query
+    policy_tabs = st.tabs(["📤 Upload Policy (HR)", "💬 Ask Policy Question (Employee)", "📚 View All Policies"])
+    
+    # Tab 1: Upload Policy Documents (HR)
+    with policy_tabs[0]:
+        st.markdown('<h3 class="sub-header">Upload Company Policy Document</h3>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            policy_name = st.text_input("Policy Document Name", placeholder="e.g., Leave Policy 2025")
+        
+        with col2:
+            policy_category = st.selectbox(
+                "Category",
+                ["Leave Policy", "Benefits", "Code of Conduct", "Remote Work", "Attendance", 
+                 "Compensation", "Performance Management", "Health & Safety", "Training & Development", "General"]
+            )
+        
+        uploaded_policy = st.file_uploader(
+            "Upload Policy Document",
+            type=["pdf", "docx", "txt"],
+            help="Upload your company policy document in PDF, DOCX, or TXT format"
+        )
+        
+        if uploaded_policy and policy_name:
+            # Extract text from uploaded file
+            success, policy_text, error = extract_text_from_file(uploaded_policy)
+            
+            if success:
+                st.success(f"✅ Successfully extracted {len(policy_text)} characters from {uploaded_policy.name}")
+                
+                # Preview of extracted content
+                with st.expander("📄 Preview Policy Content"):
+                    st.text_area("Extracted Text", policy_text[:1000] + "..." if len(policy_text) > 1000 else policy_text, height=200)
+                
+                upload_btn = st.button("📥 Upload Policy to System", type="primary", use_container_width=True)
+                
+                if upload_btn:
+                    with st.spinner("Uploading policy document..."):
+                        # Store policy in session state (in production, use database)
+                        if 'policy_documents' not in st.session_state:
+                            st.session_state.policy_documents = {}
+                        
+                        policy_id = policy_name.lower().replace(" ", "_")
+                        st.session_state.policy_documents[policy_id] = {
+                            "name": policy_name,
+                            "content": policy_text,
+                            "category": policy_category,
+                            "filename": uploaded_policy.name,
+                            "uploaded_date": "2025-11-10"
+                        }
+                        
+                        st.success(f"✅ Policy '{policy_name}' uploaded successfully!")
+                        st.balloons()
+            else:
+                st.error(f"❌ Error extracting text: {error}")
+    
+    # Tab 2: Employee Query Interface
+    with policy_tabs[1]:
+        st.markdown('<h3 class="sub-header">Ask About Company Policies</h3>', unsafe_allow_html=True)
+        
+        # Check if policies exist
+        if 'policy_documents' not in st.session_state or not st.session_state.policy_documents:
+            st.warning("⚠️ No policy documents have been uploaded yet. Please ask HR to upload policy documents first.")
+        else:
+            st.success(f"✅ {len(st.session_state.policy_documents)} policy document(s) available")
+        
+        # Employee question input
+        employee_question = st.text_area(
+            "What would you like to know about company policies?",
+            placeholder="Example: How many sick leaves am I entitled to per year?\nExample: What is the work from home policy?\nExample: When do I get my annual bonus?",
+            height=100
+        )
+        
+        ask_btn = st.button("🔍 Get Answer", type="primary", use_container_width=True)
+        
+        if ask_btn and employee_question:
+            if 'policy_documents' not in st.session_state or not st.session_state.policy_documents:
+                st.error("❌ No policy documents available. Please contact HR to upload policy documents.")
+            else:
+                with st.spinner("Searching policy documents and generating answer..."):
+                    # Search through policy documents
+                    relevant_policies = []
+                    query_lower = employee_question.lower()
+                    
+                    for policy_id, policy_data in st.session_state.policy_documents.items():
+                        content_lower = policy_data["content"].lower()
+                        # Simple keyword matching
+                        query_words = query_lower.split()
+                        matches = sum(1 for word in query_words if len(word) > 3 and word in content_lower)
+                        
+                        if matches > 0:
+                            relevant_policies.append({
+                                "name": policy_data["name"],
+                                "category": policy_data["category"],
+                                "content": policy_data["content"],
+                                "relevance": matches
+                            })
+                    
+                    relevant_policies.sort(key=lambda x: x["relevance"], reverse=True)
+                    
+                    if relevant_policies:
+                        # Use AI to generate answer with retry logic
+                        try:
+                            import time
+                            from google.genai import Client
+                            api_key = os.getenv('GOOGLE_API_KEY')
+                            
+                            if api_key:
+                                # Prepare context from relevant policies
+                                context = "\n\n".join([
+                                    f"--- {p['name']} ({p['category']}) ---\n{p['content'][:2000]}"
+                                    for p in relevant_policies[:2]
+                                ])
+                                
+                                prompt = f"""You are an HR Policy Assistant. Answer the employee's question based on the company policy documents provided.
+
+EMPLOYEE QUESTION:
+{employee_question}
+
+RELEVANT POLICY DOCUMENTS:
+{context}
+
+Please provide:
+1. A clear, direct answer to the question
+2. Reference the specific policy document
+3. Include relevant details (numbers, procedures, eligibility criteria)
+4. If the information is not in the policies, clearly state that and suggest contacting HR
+
+Keep your answer professional, friendly, and easy to understand."""
+
+                                # Retry logic for rate limiting
+                                max_retries = 3
+                                retry_delay = 2
+                                answer_generated = False
+                                
+                                for attempt in range(max_retries):
+                                    try:
+                                        client = Client(api_key=api_key)
+                                        response = client.models.generate_content(
+                                            model='gemini-2.0-flash-exp',
+                                            contents=prompt
+                                        )
+                                        
+                                        # Display answer
+                                        st.markdown("### 💡 Answer:")
+                                        st.markdown(f"""
+                                        <div class="card" style="background-color: #e8f4f8;">
+                                            {response.text}
+                                        </div>
+                                        """, unsafe_allow_html=True)
+                                        
+                                        # Show which policies were referenced
+                                        st.markdown("### 📚 Referenced Policies:")
+                                        for policy in relevant_policies[:2]:
+                                            st.markdown(f"- **{policy['name']}** ({policy['category']})")
+                                        
+                                        answer_generated = True
+                                        break
+                                        
+                                    except Exception as api_error:
+                                        error_msg = str(api_error)
+                                        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg:
+                                            if attempt < max_retries - 1:
+                                                st.warning(f"⏳ Rate limit reached. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries})")
+                                                time.sleep(retry_delay)
+                                                retry_delay *= 2  # Exponential backoff
+                                            else:
+                                                st.error("❌ API rate limit exceeded. Please try again in a few minutes.")
+                                                answer_generated = False
+                                                break
+                                        else:
+                                            raise api_error
+                                
+                                # If API failed, show fallback with policy excerpts
+                                if not answer_generated:
+                                    st.info("📄 Showing relevant policy sections (AI generation temporarily unavailable due to rate limits):")
+                                    
+                                    # Try to extract the most relevant section
+                                    for policy in relevant_policies[:2]:
+                                        with st.expander(f"📋 {policy['name']} ({policy['category']})"):
+                                            policy_content = policy['content']
+                                            
+                                            # Simple extraction: find paragraphs containing question keywords
+                                            question_keywords = [w.lower() for w in employee_question.split() if len(w) > 3]
+                                            paragraphs = policy_content.split('\n\n')
+                                            
+                                            relevant_paragraphs = []
+                                            for para in paragraphs:
+                                                para_lower = para.lower()
+                                                keyword_count = sum(1 for kw in question_keywords if kw in para_lower)
+                                                if keyword_count > 0:
+                                                    relevant_paragraphs.append((keyword_count, para))
+                                            
+                                            # Sort by relevance and show top 3
+                                            relevant_paragraphs.sort(reverse=True, key=lambda x: x[0])
+                                            
+                                            if relevant_paragraphs:
+                                                st.write("**Most Relevant Sections:**")
+                                                for _, para in relevant_paragraphs[:3]:
+                                                    st.write(para)
+                                                    st.write("---")
+                                            else:
+                                                st.write(policy_content[:1500] + "..." if len(policy_content) > 1500 else policy_content)
+                                
+                            else:
+                                st.error("❌ API key not configured. Please contact your administrator.")
+                                
+                        except Exception as e:
+                            st.error(f"❌ Error generating answer: {str(e)}")
+                            
+                            # Fallback: Show relevant policy excerpts
+                            st.markdown("### 📄 Relevant Policy Sections:")
+                            for policy in relevant_policies[:2]:
+                                with st.expander(f"📋 {policy['name']} ({policy['category']})"):
+                                    st.write(policy['content'][:1000] + "..." if len(policy['content']) > 1000 else policy['content'])
+                    else:
+                        st.warning("⚠️ No relevant policy documents found for your question. Please try rephrasing or contact HR directly.")
+    
+    # Tab 3: View All Policies
+    with policy_tabs[2]:
+        st.markdown('<h3 class="sub-header">All Policy Documents</h3>', unsafe_allow_html=True)
+        
+        if 'policy_documents' not in st.session_state or not st.session_state.policy_documents:
+            st.info("📭 No policy documents uploaded yet.")
+        else:
+            # Group policies by category
+            categories = {}
+            for policy_id, policy_data in st.session_state.policy_documents.items():
+                category = policy_data["category"]
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(policy_data)
+            
+            # Display policies by category
+            for category, policies in categories.items():
+                st.markdown(f"### 📁 {category}")
+                
+                for policy in policies:
+                    with st.expander(f"📄 {policy['name']}"):
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.write(f"**Category:** {policy['category']}")
+                        with col2:
+                            st.write(f"**File:** {policy['filename']}")
+                        with col3:
+                            st.write(f"**Uploaded:** {policy['uploaded_date']}")
+                        
+                        st.markdown("---")
+                        st.text_area("Policy Content", policy['content'], height=300, key=f"view_{policy['name']}")
+                        
+                        # Delete button
+                        if st.button(f"🗑️ Delete Policy", key=f"delete_{policy['name']}"):
+                            policy_id = policy['name'].lower().replace(" ", "_")
+                            del st.session_state.policy_documents[policy_id]
+                            st.success(f"✅ Policy '{policy['name']}' deleted!")
+                            st.rerun()
+
+
+def display_leave_management(leave_agent):
+    """Display the Leave Management interface."""
+    st.header("🏖️ Leave Management System")
+    
+    # Initialize session state for leave data
+    if 'current_employee_id' not in st.session_state:
+        st.session_state.current_employee_id = "EMP001"
+    
+    if 'leave_demo_initialized' not in st.session_state:
+        st.session_state.leave_demo_initialized = True
+        # Initialize sample data through the agent
+        try:
+            if leave_agent is not None:
+                # Initialize some sample employees
+                leave_agent.send_message("Initialize leave balances for EMP001 (John Doe) with 2 years tenure")
+                leave_agent.send_message("Initialize leave balances for EMP002 (Jane Smith) with 5 years tenure")
+                leave_agent.send_message("Initialize leave balances for EMP003 (Bob Johnson) with 8 years tenure")
+                
+                # Submit a sample pending request
+                leave_agent.send_message("Submit leave request for EMP002 from 2024-12-20 to 2024-12-22 for Vacation reason: Holiday trip")
+        except Exception as e:
+            st.warning(f"Note: Sample data initialization had an issue: {str(e)}")
+    
+    # Create tabs for different views
+    tab1, tab2, tab3 = st.tabs(["👤 Employee Portal", "👔 Manager Portal", "📊 Reports & Analytics"])
+    
+    with tab1:
+        st.subheader("Employee Self-Service")
+        
+        # Employee selector (in real app, this would be from auth)
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            employee_id = st.selectbox(
+                "Select Employee Profile",
+                ["EMP001 - John Doe", "EMP002 - Jane Smith", "EMP003 - Bob Johnson"],
+                key="employee_selector"
+            )
+            st.session_state.current_employee_id = employee_id.split(" - ")[0]
+        
+        with col2:
+            st.metric("Employee ID", st.session_state.current_employee_id)
+        
+        st.markdown("---")
+        
+        # Two columns: Leave Balance and Submit Request
+        col_left, col_right = st.columns([1, 1])
+        
+        with col_left:
+            st.markdown("### 📊 My Leave Balance")
+            
+            if st.button("🔄 Refresh Balance", key="refresh_balance"):
+                if leave_agent is None:
+                    st.error("❌ Leave agent is not available.")
+                else:
+                    with st.spinner("Fetching leave balance..."):
+                        try:
+                            query = f"What is the leave balance for employee {st.session_state.current_employee_id}?"
+                            response = leave_agent.send_message(query)
+                            
+                            if hasattr(response, 'text'):
+                                balance_info = response.text
+                            else:
+                                balance_info = str(response)
+                            
+                            st.session_state.leave_balance_info = balance_info
+                        except Exception as e:
+                            st.error(f"Error fetching balance: {str(e)}")
+                            st.session_state.leave_balance_info = "Unable to fetch balance at this time."
+            
+            # Display balance information
+            if 'leave_balance_info' in st.session_state:
+                st.info(st.session_state.leave_balance_info)
+            else:
+                st.write("Click 'Refresh Balance' to see your leave balance.")
+            
+            # Display as cards
+            st.markdown("#### Leave Type Breakdown")
+            balance_col1, balance_col2 = st.columns(2)
+            
+            with balance_col1:
+                st.metric("🏖️ Vacation", "15 days", help="Annual vacation leave")
+                st.metric("🤒 Sick Leave", "12 days", help="Sick leave")
+            
+            with balance_col2:
+                st.metric("📅 Personal", "5 days", help="Personal leave")
+                st.metric("🕊️ Bereavement", "5 days", help="Bereavement leave")
+        
+        with col_right:
+            st.markdown("### 📝 Submit Leave Request")
+            
+            with st.form("leave_request_form"):
+                leave_type = st.selectbox(
+                    "Leave Type",
+                    ["Vacation", "Sick", "Personal", "Bereavement", "Parental", "Unpaid"],
+                    help="Select the type of leave you want to request"
+                )
+                
+                col_date1, col_date2 = st.columns(2)
+                with col_date1:
+                    start_date = st.date_input("Start Date", min_value=datetime.now().date())
+                with col_date2:
+                    end_date = st.date_input("End Date", min_value=datetime.now().date())
+                
+                is_half_day = st.checkbox("Half Day Request", help="Check if requesting only half day")
+                
+                reason = st.text_area(
+                    "Reason for Leave",
+                    placeholder="Please provide a brief reason for your leave request...",
+                    height=100
+                )
+                
+                submitted = st.form_submit_button("🚀 Submit Request", use_container_width=True)
+                
+                if submitted:
+                    if not reason:
+                        st.error("❌ Please provide a reason for your leave request.")
+                    elif start_date > end_date:
+                        st.error("❌ Start date cannot be after end date.")
+                    elif leave_agent is None:
+                        st.error("❌ Leave agent is not available. Please configure GOOGLE_API_KEY.")
+                    else:
+                        with st.spinner("Submitting leave request..."):
+                            try:
+                                half_day_text = "half day" if is_half_day else ""
+                                query = f"Submit {half_day_text} leave request for {st.session_state.current_employee_id} from {start_date} to {end_date} for {leave_type} reason: {reason}"
+                                
+                                response = leave_agent.send_message(query)
+                                
+                                if hasattr(response, 'text'):
+                                    result = response.text
+                                else:
+                                    result = str(response)
+                                
+                                if "successfully" in result.lower() or "submitted" in result.lower():
+                                    st.success(f"✅ {result}")
+                                    st.balloons()
+                                    
+                                    # Automatically refresh history after submission
+                                    try:
+                                        history_query = f"Show leave history for employee {st.session_state.current_employee_id}"
+                                        history_response = leave_agent.send_message(history_query)
+                                        if hasattr(history_response, 'text'):
+                                            st.session_state.leave_history_info = history_response.text
+                                        
+                                        # Also refresh pending requests for managers
+                                        pending_query = "Show all pending leave requests"
+                                        pending_response = leave_agent.send_message(pending_query)
+                                        if hasattr(pending_response, 'text'):
+                                            st.session_state.pending_requests_info = pending_response.text
+                                    except:
+                                        pass
+                                    
+                                    # Clear the form and rerun
+                                    st.rerun()
+                                else:
+                                    st.warning(f"⚠️ {result}")
+                                    
+                            except Exception as e:
+                                st.error(f"❌ Error submitting request: {str(e)}")
+        
+        st.markdown("---")
+        
+        # Leave History Section
+        st.markdown("### 📜 My Leave History")
+        
+        col_hist1, col_hist2 = st.columns([3, 1])
+        with col_hist2:
+            if st.button("🔄 Refresh History", key="refresh_history"):
+                if leave_agent is None:
+                    st.error("❌ Leave agent is not available.")
+                else:
+                    with st.spinner("Fetching leave history..."):
+                        try:
+                            query = f"Show leave history for employee {st.session_state.current_employee_id}"
+                            response = leave_agent.send_message(query)
+                            
+                            if hasattr(response, 'text'):
+                                history_info = response.text
+                            else:
+                                history_info = str(response)
+                            
+                            st.session_state.leave_history_info = history_info
+                        except Exception as e:
+                            st.error(f"Error fetching history: {str(e)}")
+        
+        with col_hist1:
+            if 'leave_history_info' in st.session_state:
+                st.info(st.session_state.leave_history_info)
+            else:
+                st.write("Click 'Refresh History' to see your leave history.")
+    
+    with tab2:
+        st.subheader("Manager Dashboard")
+        
+        st.markdown("### 📋 Pending Leave Requests")
+        
+        col_mgr1, col_mgr2 = st.columns([3, 1])
+        with col_mgr2:
+            if st.button("🔄 Refresh Pending", key="refresh_pending"):
+                if leave_agent is None:
+                    st.error("❌ Leave agent is not available.")
+                else:
+                    with st.spinner("Fetching pending requests..."):
+                        try:
+                            query = "Show all pending leave requests"
+                            response = leave_agent.send_message(query)
+                            
+                            if hasattr(response, 'text'):
+                                pending_info = response.text
+                            else:
+                                pending_info = str(response)
+                            
+                            st.session_state.pending_requests_info = pending_info
+                        except Exception as e:
+                            st.error(f"Error fetching pending requests: {str(e)}")
+        
+        with col_mgr1:
+            if 'pending_requests_info' in st.session_state:
+                st.info(st.session_state.pending_requests_info)
+            else:
+                st.write("Click 'Refresh Pending' to see pending leave requests.")
+        
+        st.markdown("---")
+        
+        # Approval/Rejection Interface
+        st.markdown("### ✅ Approve or Reject Requests")
+        
+        with st.form("approval_form"):
+            request_id = st.text_input(
+                "Request ID",
+                placeholder="e.g., REQ-EMP002-20241220",
+                help="Enter the request ID from the pending requests list above"
+            )
+            
+            col_action1, col_action2 = st.columns(2)
+            
+            with col_action1:
+                approve_button = st.form_submit_button("✅ Approve", use_container_width=True)
+            
+            with col_action2:
+                reject_button = st.form_submit_button("❌ Reject", use_container_width=True)
+            
+            manager_notes = st.text_area(
+                "Manager Notes (Optional)",
+                placeholder="Add any notes or comments about this decision...",
+                height=80
+            )
+            
+            if approve_button:
+                if not request_id:
+                    st.error("❌ Please enter a request ID.")
+                elif leave_agent is None:
+                    st.error("❌ Leave agent is not available.")
+                else:
+                    with st.spinner("Approving request..."):
+                        try:
+                            query = f"Approve leave request {request_id}"
+                            if manager_notes:
+                                query += f" with notes: {manager_notes}"
+                            
+                            response = leave_agent.send_message(query)
+                            
+                            if hasattr(response, 'text'):
+                                result = response.text
+                            else:
+                                result = str(response)
+                            
+                            if "approved" in result.lower():
+                                st.success(f"✅ {result}")
+                                st.balloons()
+                                
+                                # Automatically refresh pending requests
+                                try:
+                                    pending_query = "Show all pending leave requests"
+                                    pending_response = leave_agent.send_message(pending_query)
+                                    if hasattr(pending_response, 'text'):
+                                        st.session_state.pending_requests_info = pending_response.text
+                                except:
+                                    pass
+                            else:
+                                st.warning(f"⚠️ {result}")
+                                
+                        except Exception as e:
+                            st.error(f"❌ Error approving request: {str(e)}")
+            
+            if reject_button:
+                if not request_id:
+                    st.error("❌ Please enter a request ID.")
+                elif leave_agent is None:
+                    st.error("❌ Leave agent is not available.")
+                else:
+                    with st.spinner("Rejecting request..."):
+                        try:
+                            query = f"Reject leave request {request_id}"
+                            if manager_notes:
+                                query += f" with reason: {manager_notes}"
+                            
+                            response = leave_agent.send_message(query)
+                            
+                            if hasattr(response, 'text'):
+                                result = response.text
+                            else:
+                                result = str(response)
+                            
+                            if "rejected" in result.lower():
+                                st.success(f"✅ {result}")
+                                
+                                # Automatically refresh pending requests
+                                try:
+                                    pending_query = "Show all pending leave requests"
+                                    pending_response = leave_agent.send_message(pending_query)
+                                    if hasattr(pending_response, 'text'):
+                                        st.session_state.pending_requests_info = pending_response.text
+                                except:
+                                    pass
+                            else:
+                                st.warning(f"⚠️ {result}")
+                                
+                        except Exception as e:
+                            st.error(f"❌ Error rejecting request: {str(e)}")
+        
+        st.markdown("---")
+        
+        # Team Leave Overview
+        st.markdown("### 👥 Team Leave Overview")
+        
+        if st.button("📊 View Team Leave Status", key="team_status"):
+            if leave_agent is None:
+                st.error("❌ Leave agent is not available.")
+            else:
+                with st.spinner("Fetching team leave data..."):
+                    try:
+                        # Query for multiple employees
+                        st.markdown("#### Current Team Status")
+                        
+                        team_members = ["EMP001", "EMP002", "EMP003"]
+                        for emp_id in team_members:
+                            query = f"What is the leave balance for employee {emp_id}?"
+                            response = leave_agent.send_message(query)
+                            
+                            if hasattr(response, 'text'):
+                                balance = response.text
+                            else:
+                                balance = str(response)
+                            
+                            with st.expander(f"📋 {emp_id} Leave Status"):
+                                st.write(balance)
+                                
+                    except Exception as e:
+                        st.error(f"Error fetching team data: {str(e)}")
+    
+    with tab3:
+        st.subheader("Reports & Analytics")
+        
+        st.markdown("### 📈 Leave Statistics")
+        
+        col_rep1, col_rep2, col_rep3 = st.columns(3)
+        
+        # Calculate real metrics from session state
+        total_requests = len(st.session_state.get('mock_leave_requests', []))
+        pending_count = sum(1 for req in st.session_state.get('mock_leave_requests', []) if req.get('status') == 'Pending')
+        approved_count = sum(1 for req in st.session_state.get('mock_leave_requests', []) if req.get('status') == 'Approved')
+        rejected_count = sum(1 for req in st.session_state.get('mock_leave_requests', []) if req.get('status') == 'Rejected')
+        
+        with col_rep1:
+            st.metric("Total Requests", str(total_requests), help="Total leave requests in system")
+            st.metric("Pending Requests", str(pending_count), delta="Awaiting approval" if pending_count > 0 else None, help="Requests awaiting approval")
+        
+        with col_rep2:
+            st.metric("Approved Requests", str(approved_count), help="Approved leave requests")
+            st.metric("Rejected Requests", str(rejected_count), help="Rejected leave requests")
+        
+        with col_rep3:
+            # Calculate unique employees
+            unique_employees = len(set(req.get('employee_id', '') for req in st.session_state.get('mock_leave_requests', [])))
+            st.metric("Active Employees", str(unique_employees) if unique_employees > 0 else "0", help="Employees with leave requests")
+            
+            # Calculate average days
+            total_days = sum((req.get('end_date', req.get('start_date')) - req.get('start_date')).days + 1 
+                           for req in st.session_state.get('mock_leave_requests', []) 
+                           if req.get('start_date') and req.get('end_date'))
+            avg_days = total_days / total_requests if total_requests > 0 else 0
+            st.metric("Avg Request Length", f"{avg_days:.1f} days", help="Average leave request duration")
+        
+        st.markdown("---")
+        
+        # Leave Type Distribution
+        st.markdown("### 📊 Leave Type Distribution")
+        
+        # Count leave types from real data
+        leave_types_count = {}
+        for req in st.session_state.get('mock_leave_requests', []):
+            leave_type = req.get('leave_type', 'Unknown')
+            leave_types_count[leave_type] = leave_types_count.get(leave_type, 0) + 1
+        
+        if leave_types_count:
+            leave_data = {
+                'Leave Type': list(leave_types_count.keys()),
+                'Total Requests': list(leave_types_count.values()),
+                'Status Breakdown': [
+                    f"{sum(1 for r in st.session_state.get('mock_leave_requests', []) if r.get('leave_type') == lt and r.get('status') == 'Approved')}A / "
+                    f"{sum(1 for r in st.session_state.get('mock_leave_requests', []) if r.get('leave_type') == lt and r.get('status') == 'Pending')}P / "
+                    f"{sum(1 for r in st.session_state.get('mock_leave_requests', []) if r.get('leave_type') == lt and r.get('status') == 'Rejected')}R"
+                    for lt in leave_types_count.keys()
+                ]
+            }
+        else:
+            # Show placeholder when no data
+            leave_data = {
+                'Leave Type': ['No data yet'],
+                'Total Requests': [0],
+                'Status Breakdown': ['-']
+            }
+        
+        import pandas as pd
+        df_leave = pd.DataFrame(leave_data)
+        st.dataframe(df_leave, use_container_width=True)
+        
+        if leave_types_count:
+            st.caption("Status Breakdown: A=Approved, P=Pending, R=Rejected")
+        
+        st.markdown("---")
+        
+        # Upcoming Leave Calendar
+        st.markdown("### 📅 Upcoming Team Leave")
+        
+        # Get approved leave from real data
+        today = datetime.now().date()
+        upcoming_leave = []
+        
+        for req in st.session_state.get('mock_leave_requests', []):
+            if req.get('status') == 'Approved' and req.get('start_date'):
+                start_date = req['start_date']
+                end_date = req.get('end_date', start_date)
+                
+                # Check if leave is in the future or ongoing
+                if end_date >= today:
+                    upcoming_leave.append({
+                        'Employee': req.get('employee_id', 'Unknown'),
+                        'Leave Type': req.get('leave_type', 'Unknown'),
+                        'Start': start_date.strftime('%Y-%m-%d'),
+                        'End': end_date.strftime('%Y-%m-%d'),
+                        'Days': (end_date - start_date).days + 1
+                    })
+        
+        if upcoming_leave:
+            # Sort by start date
+            upcoming_leave.sort(key=lambda x: x['Start'])
+            df_upcoming = pd.DataFrame(upcoming_leave)
+            st.dataframe(df_upcoming, use_container_width=True)
+        else:
+            st.info("No upcoming approved leave.")
+        
+        st.markdown("---")
+        
+        # Export Options
+        st.markdown("### 💾 Export Reports")
+        
+        col_exp1, col_exp2 = st.columns(2)
+        
+        with col_exp1:
+            if st.button("📥 Export Leave Balances", key="export_balances"):
+                st.info("Export functionality would generate CSV/Excel file with all employee leave balances.")
+        
+        with col_exp2:
+            if st.button("📥 Export Leave History", key="export_history"):
+                st.info("Export functionality would generate CSV/Excel file with complete leave history.")
+        
+        # AI-Powered Insights
+        st.markdown("---")
+        st.markdown("### 🤖 AI-Powered Insights")
+        
+        insights_query = st.text_input(
+            "Ask about leave trends",
+            placeholder="e.g., 'What are the leave patterns this quarter?' or 'Which team has highest leave utilization?'",
+            key="insights_query"
+        )
+        
+        if st.button("🔍 Get Insights", key="get_insights"):
+            if not insights_query:
+                st.warning("Please enter a question to analyze.")
+            elif leave_agent is None:
+                st.error("❌ Leave agent is not available.")
+            else:
+                with st.spinner("Analyzing leave data..."):
+                    try:
+                        response = leave_agent.send_message(insights_query)
+                        
+                        if hasattr(response, 'text'):
+                            insights = response.text
+                        else:
+                            insights = str(response)
+                        
+                        st.success("📊 Analysis Results:")
+                        st.info(insights)
+                        
+                    except Exception as e:
+                        st.error(f"Error generating insights: {str(e)}")
+
+
 if __name__ == "__main__":
     main()
+
