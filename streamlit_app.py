@@ -3600,9 +3600,19 @@ def display_leave_management(leave_agent):
             st.metric("Active Employees", str(unique_employees) if unique_employees > 0 else "0", help="Employees with leave requests")
             
             # Calculate average days
-            total_days = sum((req.get('end_date', req.get('start_date')) - req.get('start_date')).days + 1 
-                           for req in st.session_state.get('mock_leave_requests', []) 
-                           if req.get('start_date') and req.get('end_date'))
+            total_days = 0
+            for req in st.session_state.get('mock_leave_requests', []):
+                start_date = req.get('start_date')
+                end_date = req.get('end_date', start_date)
+                
+                if start_date and end_date:
+                    # Check if dates are already date objects
+                    if isinstance(start_date, str):
+                        continue  # Skip if dates are strings (not yet parsed)
+                    
+                    days = (end_date - start_date).days + 1
+                    total_days += days
+            
             avg_days = total_days / total_requests if total_requests > 0 else 0
             st.metric("Avg Request Length", f"{avg_days:.1f} days", help="Average leave request duration")
         
@@ -3656,6 +3666,10 @@ def display_leave_management(leave_agent):
             if req.get('status') == 'Approved' and req.get('start_date'):
                 start_date = req['start_date']
                 end_date = req.get('end_date', start_date)
+                
+                # Skip if dates are strings (not date objects)
+                if isinstance(start_date, str) or isinstance(end_date, str):
+                    continue
                 
                 # Check if leave is in the future or ongoing
                 if end_date >= today:
