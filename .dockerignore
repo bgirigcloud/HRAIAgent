@@ -1,0 +1,93 @@
+# .dockerignore - Files to exclude from Docker build
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+!README.md
+*.txt
+!requirements.txt
+
+# Environment files
+.env
+.env.*
+
+# Credentials
+credentials.json
+token.json
+*.key
+*.pem
+*.p12
+google_credentials.json
+service_account.json
+
+# Logs and databases
+*.log
+*.db
+*.sqlite
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+uploads/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Test files
+test_*.py
+*_test.py
+tests/
+
+# Deployment files (not needed in container)
+deploy.sh
+deploy.ps1
+app.yaml
+cloudbuild.yaml
+
+# Sample files
+sample_*.pdf
+sample_*.docx
+!sample_remote_work_policy.txt
+
+# Neo4j and databases
+neo4j_data/
+vector_db/
+*.dump
+
+# Model cache
+models/
+*.model
+*.pkl
+
+# Backup files
+*.bak
+*.backup
